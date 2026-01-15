@@ -61,7 +61,17 @@ export default function KidView() {
         .order('created_at', { ascending: false })
 
       if (tasksData) {
-        setTasks(tasksData)
+        // Sort: unfinished tasks first, then completed tasks
+        // Within each group, sort by created_at (newest first)
+        const sortedTasks = tasksData.sort((a, b) => {
+          // First, sort by completion status (false before true)
+          if (a.is_completed !== b.is_completed) {
+            return a.is_completed ? 1 : -1
+          }
+          // Then, sort by created_at (newest first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        })
+        setTasks(sortedTasks)
       }
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -77,12 +87,22 @@ export default function KidView() {
         .update({ is_completed: !currentStatus })
         .eq('id', taskId)
 
-      // Optimistically update UI
-      setTasks(tasks.map(task => 
+      // Optimistically update UI with proper sorting
+      const updatedTasks = tasks.map(task => 
         task.id === taskId 
           ? { ...task, is_completed: !currentStatus }
           : task
-      ))
+      )
+      
+      // Sort: unfinished tasks first, then completed tasks
+      const sortedTasks = updatedTasks.sort((a, b) => {
+        if (a.is_completed !== b.is_completed) {
+          return a.is_completed ? 1 : -1
+        }
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
+      
+      setTasks(sortedTasks)
     } catch (error) {
       console.error('Error toggling task:', error)
     }
